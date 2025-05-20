@@ -1,0 +1,144 @@
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib60/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+#  Usually these files are written by a python script from a template
+#  before PyInstaller builds the exe, so as to inject date/version info into it.
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
+
+# Translations
+*.mo
+*.pot
+
+# Django stuff:
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+
+# Flask stuff:
+instance/
+.webassets-cache
+
+# Scrapy stuff:
+.scrapy
+
+# Sphinx documentation
+docs/_build/
+
+# PyBuilder
+target/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# IPython
+profile_default/
+ipython_config.py
+
+# pyenv
+.python-version
+
+# PEP 582; __pypackages__ directory
+__pypackages__/
+
+# Celery stuff
+celerybeat-schedule
+celerybeat.pid
+
+# SageMath parsed files
+*.sage.py
+
+# Environments (generic)
+venv/
+env/
+ENV/
+VENV/
+.venv/ # Common for modern Python projects
+
+# Virtualenv old-style
+# venv.bak
+# env.bak
+
+# IDEs and editors
+.idea/         # IntelliJ / PyCharm
+.vscode/       # Visual Studio Code
+*.sublime-project
+*.sublime-workspace
+nbproject/     # NetBeans
+*.DS_Store     # MacOS
+Thumbs.db      # Windows
+
+# Miscellaneous
+*.swp
+*~
+*.bak
+*.tmp
+
+# Log files
+*.log
+logs/ # If you have a local logs/ directory for runtime logs not meant for repo
+# (Note: Your RIN project has a `rin/logs/` for telemetry JSONs.
+# If those JSONs ARE meant to be committed as examples or part of the repo,
+# then you might remove `logs/` from here or make it more specific like `*.runtime.log`)
+# For now, assuming RIN's `rin/logs/` are for generated output you might commit example of.
+# If `rin/logs/` is purely for transient logs, then `rin/logs/` or `logs/` here is fine.
+# Given the RIN roadmap mentions "JSON log per run (rin/logs/yyyymmdd-HHMMSS.json)",
+# these specific JSON files will be ignored if you just put `logs/` or `rin/logs/` here.
+# Let's be specific and keep `rin/logs/` *out* of the .gitignore for now, assuming the plan
+# implies these might be example outputs or part of what we manage,
+# UNLESS you explicitly want to ignore everything in `rin/logs/`.
+# For now, I'll remove the generic `logs/` and you can add `rin/logs/` if those should be ignored.
+rin/logs/*.json
+
+# Temporary files from editor Spyder and IPython
+.spyderproject
+.spyproject
+.ropeproject
