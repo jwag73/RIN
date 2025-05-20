@@ -101,7 +101,7 @@ venv/
 env/
 ENV/
 VENV/
-.venv/ # Common for modern Python projects
+.venv/
 
 # Virtualenv old-style
 # venv.bak
