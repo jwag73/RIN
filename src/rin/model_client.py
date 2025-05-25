@@ -1,21 +1,257 @@
+
 """
-Thin wrapper around OpenAI calls.
-For Sprint 1 we stub it out so tests never touch the network.
+Model client for RIN project.
+
+This version integrates asynchronous HTTP handling via ``aiohttp``, detailed
+prompt construction for Shot 0 (initial fencing), Shot 1 (self‑fix), and the
+Big‑Model fallback as well as parsing of model output into structured
+``ModelCommand`` dictionaries.
+
+For Sprint 1 the ``_make_api_call`` method is still a stub returning mock
+responses so unit‑tests never touch the network.
 """
+from __future__ import annotations
 
 import asyncio
-from typing import Any, Dict
+from typing import List, Dict, Optional, Tuple
+
+import aiohttp
+
+from .config import RinConfig
+
+# Placeholder for expected command structure
+# Example: {"command": "INSERT_FENCE_START", "token_id": "00003", "lang": "python"}
+# Example: {"command": "INSERT_FENCE_END", "token_id": "00014"}
+ModelCommand = Dict[str, str]
+
 
 class ModelClient:
-    def __init__(self, config: "RinConfig | None" = None) -> None:
-        # Keep the config around for later use (real model calls, retries, etc.)
-        self.config = config
+    """Client for interacting with AI models asynchronously."""
 
-    async def complete(self, prompt: str, **kwargs: Dict[str, Any]) -> str:
+    # ---------------------------------------------------------------------
+    # Construction / context‑manager helpers
+    # ---------------------------------------------------------------------
+
+    def __init__(
+        self,
+        config: RinConfig,
+        session: Optional[aiohttp.ClientSession] = None,
+    ) -> None:
         """
-        Return a canned response that our tests can rely on.
-        Later we’ll swap this out (or subclass) to make real OpenAI calls.
+        Parameters
+        ----------
+        config:
+            Project‑wide configuration instance giving model names and API keys.
+        session:
+            Optional externally‑managed :class:`aiohttp.ClientSession`.
+            When *None* the client creates (and later closes) a private session.
         """
-        await asyncio.sleep(0)  # keeps the signature truly async
-        # A silly deterministic response: just echoes the prompt with fences.
+        self.config: RinConfig = config
+        self._session: Optional[aiohttp.ClientSession] = session
+        self._owns_session: bool = session is None
+
+    async def __aenter__(self) -> "ModelClient":
+        if self._owns_session:
+            # Lazily create session only when entering context.
+            if self._session is None or self._session.closed:
+                self._session = aiohttp.ClientSession()
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb) -> None:
+        # Close the privately‑owned session.
+        if self._owns_session and self._session and not self._session.closed:
+            await self._session.close()
+
+    # ---------------------------------------------------------------------
+    # Public high‑level request helpers
+    # ---------------------------------------------------------------------
+
+    async def request_shot0(
+        self,
+        tokenized_text_with_ids: List[Tuple[str, str]],
+    ) -> List[ModelCommand]:
+        """Initial fencing pass (Shot 0)."""
+        prompt = self._construct_shot0_prompt(tokenized_text_with_ids)
+        raw = await self._make_api_call(self.config.shot0_model, prompt)
+        return self._parse_model_commands(raw)
+
+    async def request_shot1(
+        self,
+        tokenized_text_with_ids: List[Tuple[str, str]],
+        previous_commands: List[ModelCommand],
+        error_context: str,
+    ) -> List[ModelCommand]:
+        """
+        Self‑fix pass (Shot 1) executed when Shot 0 produced invalid / mismatched
+        fences.  The model receives the original tokens, the commands it
+        produced previously and a concise error description so it can repair
+        its answer.
+        """
+        prompt = self._construct_shot1_prompt(
+            tokenized_text_with_ids, previous_commands, error_context
+        )
+        raw = await self._make_api_call(self.config.shot1_model, prompt)
+        return self._parse_model_commands(raw)
+
+    async def request_big_model(
+        self,
+        tokenized_text_with_ids: List[Tuple[str, str]],
+    ) -> List[ModelCommand]:
+        """Fallback request using a larger model for tricky examples."""
+        prompt = self._construct_big_model_prompt(tokenized_text_with_ids)
+        raw = await self._make_api_call(self.config.big_model, prompt)
+        return self._parse_model_commands(raw)
+
+    # ---------------------------------------------------------------------
+    # Low‑level helpers
+    # ---------------------------------------------------------------------
+
+    async def _make_api_call(self, model_name: str, prompt: str) -> str:
+        """
+        Placeholder for making an actual API call.
+
+        In a real scenario this would use ``self._session.post(...)`` with
+        appropriate headers/authentication and sophisticated error handling.
+        For now we return deterministic mock data so that unit‑tests never hit
+        the network.
+        """
+        # Simulate a tiny network delay to keep async semantics realistic.
+        await asyncio.sleep(0.01)
+
+        # Mock responses differentiated by prompt type ---------------------
+        if "Shot-0" in prompt:
+            return "INSERT_FENCE_START 00003 python\nINSERT_FENCE_END 00014"
+        if "Shot-1" in prompt:
+            return (
+                "INSERT_FENCE_START 00003 python\n"
+                "INSERT_FENCE_END 00007\n"
+                "INSERT_FENCE_START 00010 text\n"
+                "INSERT_FENCE_END 00012"
+            )
+        if "Big Model" in prompt:
+            return "INSERT_FENCE_START 00001 python\nINSERT_FENCE_END 00020"
+
+        # Fallback: echo the prompt like the original stub.
         return f"```python\\n# echoed by fake model\\n{prompt}\\n```"
+
+    # ---------------------------------------------------------------------
+    # Parse helpers
+    # ---------------------------------------------------------------------
+
+    @staticmethod
+    def _parse_model_commands(model_output: str) -> List[ModelCommand]:
+        """
+        Parse the raw string response from the model into a structured list.
+
+        Returns
+        -------
+        List[ModelCommand]
+            Each command is a mapping with keys ``command`` and ``token_id`` as
+            well as ``lang`` when applicable.
+        """
+        commands: List[ModelCommand] = []
+        for raw_line in model_output.strip().splitlines():
+            parts = raw_line.strip().split()
+            if not parts:
+                continue
+
+            opcode = parts[0]
+            if opcode == "INSERT_FENCE_START" and len(parts) >= 3:
+                commands.append(
+                    {
+                        "command": opcode,
+                        "token_id": parts[1],
+                        "lang": " ".join(parts[2:]),
+                    }
+                )
+            elif opcode == "INSERT_FENCE_END" and len(parts) >= 2:
+                commands.append({"command": opcode, "token_id": parts[1]})
+            # else: silently ignore malformed lines – alternatively one could
+            # raise or log here depending on overall error handling strategy.
+        return commands
+
+    # ---------------------------------------------------------------------
+    # Prompt construction helpers
+    # ---------------------------------------------------------------------
+
+    # read‑only property because we use it multiple times inside prompt methods
+    _SUPPORTED_LANGS: str = (
+        "python, json, bash, javascript, typescript, java, csharp, cpp, go, "
+        "rust, php, ruby, sql, html, css, text"
+    )
+
+    def _construct_shot0_prompt(
+        self, tokenized_text_with_ids: List[Tuple[str, str]]
+    ) -> str:
+        """Prompt for the initial fencing pass."""
+        tokens_str = "\n".join(
+            f"[{token_id}]{token_text}" for token_id, token_text in tokenized_text_with_ids
+        )
+
+        system_prompt = (
+            "You are MarkdownFenceBot v1, an AI assistant specialised in "
+            "identifying code blocks within a stream of text tokens and "
+            "inserting appropriate language‑specific Markdown fences. "
+            "Your goal is to accurately demarcate code snippets."
+        )
+
+        output_rules = (
+            "OUTPUT RULES:\n"
+            "- To insert a fence start: INSERT_FENCE_START <token_id> <language_tag>\n"
+            "  (Insert a start fence *before* the token with ID <token_id>.)\n"
+            "- To insert a fence end: INSERT_FENCE_END <token_id>\n"
+            "  (Insert an end fence *before* the token with ID <token_id>.)\n"
+            f"Supported language_tag values: {self._SUPPORTED_LANGS}.\n"
+            "If unsure about the language, use 'text'.\n"
+            "Ensure every INSERT_FENCE_START has a corresponding INSERT_FENCE_END.\n"
+            "Return only one command per line."
+        )
+
+        return (
+            "System Prompt (Shot-0):\n"
+            f"{system_prompt}\n\n"
+            "User Prompt:\n"
+            "TEXT (numbered tokens from input):\n"
+            f"{tokens_str}\n\n"
+            f"{output_rules}"
+        )
+
+    def _construct_shot1_prompt(
+        self,
+        tokenized_text_with_ids: List[Tuple[str, str]],
+        previous_commands: List[ModelCommand],
+        error_context: str,
+    ) -> str:
+        """Prompt for self‑fix pass (Shot 1)."""
+        tokens_str = "\n".join(
+            f"[{token_id}]{token_text}" for token_id, token_text in tokenized_text_with_ids
+        )
+        prev_cmds_str = "\n".join(
+            self._model_command_to_str(cmd) for cmd in previous_commands
+        )
+
+        system_prompt = (
+            "You are MarkdownFenceBot v1 running in self‑repair mode. "
+            "You previously attempted to fence the provided tokens, but "
+            "the command list you produced failed validation.\n"
+            "Analyse the error context, then return a corrected list of "
+            "commands following the same OUTPUT RULES."
+        )
+
+        output_rules = (
+            "OUTPUT RULES (same as before):\n"
+            "- INSERT_FENCE_START <token_id> <language_tag>\n"
+            "- INSERT_FENCE_END <token_id>\n"
+            f"Supported languages: {self._SUPPORTED_LANGS}.\n"
+            "Only one command per line."
+        )
+
+        return (
+            "System Prompt (Shot-1):\n"
+            f"{system_prompt}\n\n"
+            "PREVIOUS COMMANDS:\n"
+            f"{prev_cmds_str or '[none]'}\n\n"
+            "ERROR CONTEXT:\n"
+            f"{error_context or 'n/a'}\n\n"
+            "TEXT (numbered tokens from input):\n"
+            f"{tokens
