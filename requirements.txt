@@ -1,0 +1,23 @@
+astroid==3.3.10
+attrs==25.3.0
+certifi==2025.4.26
+charset-normalizer==3.4.2
+colorama==0.4.6
+dill==0.4.0
+hypothesis==6.131.27
+idna==3.10
+iniconfig==2.1.0
+isort==6.0.1
+markdown-it-py==3.0.0
+mccabe==0.7.0
+mdurl==0.1.2
+packaging==25.0
+platformdirs==4.3.8
+pluggy==1.6.0
+pylint==3.3.7
+pytest==8.3.5
+requests==2.32.3
+-e git+https://github.com/jwag73/RIN.git@31808318efff1a18a712a3a5cb060f10be735e31#egg=rin
+sortedcontainers==2.4.0
+tomlkit==0.13.2
+urllib3==2.4.0
