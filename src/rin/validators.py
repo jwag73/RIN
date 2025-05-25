@@ -20,9 +20,12 @@ from __future__ import annotations
 
 import ast
 import subprocess
+import sys
 from typing import List, Tuple, Optional
 
 from markdown_it import MarkdownIt
+
+
 
 __all__ = [
     "extract_code_blocks",
@@ -88,24 +91,21 @@ def run_pylint_check(code_block: str, timeout_seconds: int = 10) -> Tuple[bool, 
     """
     try:
         proc = subprocess.run(
-            [
-                "python3",
-                "-m",
-                "pylint",
-                # Disable some warnings that are noisy in short snippets.
-                "--disable="
-                "missing-docstring,invalid-name,trailing-newlines,import-error,"
-                "wrong-import-position,fixme",
-                # Custom concise msg format to keep output on one line each.
-                "--msg-template={line}:{column}: {msg_id}({symbol}) {msg}",
-                "-",  # read code from STDIN
-            ],
-            input=code_block,
-            text=True,
-            capture_output=True,
-            timeout=timeout_seconds,
-            check=False,
+        [
+        sys.executable,
+        "-m",
+        "pylint",
+        "--from-stdin",
+        "linted_stdin_block.py",  # Provide a dummy filename for Pylint
+        # Let's try re-adding your preferred options.
+        # If Pylint errors again on options, we'll know it's one of these.
+        "--disable="
+        "missing-docstring,invalid-name,trailing-newlines,import-error,"
+        "wrong-import-position,fixme",
+        "--msg-template={line}:{column}: {msg_id}({symbol}) {msg}",
+        ],
         )
+
         if proc.returncode == 0:
             return True, "Pylint passed."
         output = (proc.stdout.strip() + "\n" + proc.stderr.strip()).strip()

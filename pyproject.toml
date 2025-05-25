@@ -5,8 +5,18 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "rin"
 version = "0.1.0"
+
 # You can add authors, description, etc. here later if you want
 
 [tool.setuptools.packages.find]
 where = ["src"]  # Tells setuptools your packages are under the 'src' directory
 
+[tool.coverage.run]
+source = ["src"]
+
+[tool.pytest.ini_options]
+addopts = "--cov=src --cov-report=term-missing --cov-report=html"
+testpaths = ["tests"] # It's good to explicitly define this
+python_files = "test_*.py" # And this too
+asyncio_mode = "auto" # Make sure this line is active
+asyncio_default_fixture_loop_scope = "function"

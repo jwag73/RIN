@@ -1,0 +1,23 @@
+{
+  "run_id": "20250525-115146-888159-b6bdc33d",
+  "elapsed_ms": 30.350400018505752,
+  "cost_estimate_usd": null,
+  "input_char_length": 0,
+  "output_char_length": 23,
+  "fenced_blocks_in_input": 0,
+  "fenced_blocks_in_output": 0,
+  "identified_python_blocks": 0,
+  "passed_linting_python_blocks": 0,
+  "fence_parity_ok_initial": false,
+  "fence_parity_ok_after_fallback": false,
+  "fence_parity_ok_after_fix": null,
+  "shot0_model_used": "gpt-4.1-nano",
+  "shot1_model_used": null,
+  "big_model_used": "gpt-4.1",
+  "self_fix_attempted": false,
+  "fallback_to_big_model_used": true,
+  "errors": [
+    "Fence parity invalid after Big-Model fallback."
+  ],
+  "final_status_message": "G0 failed \u2013 unmatched fences."
+}

@@ -1,0 +1,23 @@
+{
+  "run_id": "20250525-114542-486164-c6637654",
+  "elapsed_ms": 17.385800019837916,
+  "cost_estimate_usd": null,
+  "input_char_length": 0,
+  "output_char_length": 24,
+  "fenced_blocks_in_input": 0,
+  "fenced_blocks_in_output": 0,
+  "identified_python_blocks": 0,
+  "passed_linting_python_blocks": 0,
+  "fence_parity_ok_initial": false,
+  "fence_parity_ok_after_fallback": null,
+  "fence_parity_ok_after_fix": null,
+  "shot0_model_used": "gpt-4.1-nano",
+  "shot1_model_used": null,
+  "big_model_used": null,
+  "self_fix_attempted": false,
+  "fallback_to_big_model_used": true,
+  "errors": [
+    "Critical error: 'ModelClient' object has no attribute '_construct_big_model_prompt'"
+  ],
+  "final_status_message": "Critical error during processing."
+}
